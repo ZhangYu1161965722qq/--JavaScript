@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <title>排座位</title>
+
+        <style type="text/css">
+            body{
+                margin-left: 10px;
+                margin-right: 10px;
+                background-color:rgba(28, 252, 91, 0.027);
+            }
+
+            div{
+                float: left;
+                border-radius:12px;
+                /* backdrop-filter:blur(10px); */   /*背景模糊*/
+                margin-top: 5px;
+            }
+
+            #div_tool{
+                margin: 0;
+                padding: 5px;
+                background-color: rgba(89, 192, 232, 0.341);
+                position: fixed;
+                z-index: 1;
+                bottom:5px;
+                left:10px;
+                right:10px;
+                text-align:center;
+                font-size: x-large;
+            }
+
+            #div_table_name {
+                background-color: azure;
+                border:1px dashed;
+                min-height: 5vh;
+                width: 100%;
+            }
+
+            #div_table_sit {
+                margin-bottom:50px;
+                border:1px dashed;
+                min-height:70vh;
+                width:100%;
+            }
+
+            input{
+                width:40px;
+                font-size: x-large;
+            }
+
+            button{
+                margin-left: 10px;
+                margin-right: 10px;
+                font-size: x-large;
+            }
+
+            #btn_startOrStop{
+                border:5px solid;
+                background-color:white;
+                color:black;
+                border-radius:50%;
+                width:50px;
+                height:50px;
+                text-align:center;
+            }
+
+            td{
+                word-break: break-all;
+                word-wrap:break-word;
+            }
+
+        </style>
+
+    </head>
+
+    <body>
+        
+        <div id="div_tool">
+            <button id="btn_selectFile" onclick="selectFile()" title="选择文件（含姓名的txt文件）">...</button><label id="lbl_fileName"></label>
+            <button id="btn_listName" onclick="listName()">列姓名</button>
+            <input id='rowNum' type="number" min='1' max="20" title="输入行数" >行</input>
+            x
+            <input id='columnNum' type="number" min='1' max="20" title="输入列数">列</input>
+
+            <button onclick="listSit()">列座位</button>
+            排座位
+            <button id="btn_startOrStop" onclick="startOrStop(this)" title="开始">▶</button>
+
+            <input type="file" id="fileInput" accept='.txt' style="width:0;z-index: -1;position:fixed;"/>
+
+        </div>
+
+        <div id='div_table_name'>姓名</div>
+ 
+        <div id='div_table_sit'>座位</div>
+
+    </body>
+
+    <script type='text/javascript'>
+
+        function listSit(){
+            var row =document.getElementById('rowNum').value;
+            var column =document.getElementById('columnNum').value;
+
+            if (row=='' || column==''){
+                alert('行数和列数不能为空！');
+                return;
+            }
+
+            row =parseInt(row);
+            column =parseInt(column);
+
+            var div_talbe_sit=window.document.getElementById('div_table_sit');
+            if(div_talbe_sit.innerHTML!=''){
+                if(confirm('确定重新列出座位吗？')==false){
+                    return;
+                }
+                div_talbe_sit.innerHTML='';
+            }
+
+            div_talbe_sit.style.border='0';
+
+            var table = document.createElement('table');
+
+            table.style.border='1px dashed';
+            // table.setAttribute('cellspacing','0');      // 边框无间隔
+            table.style.textAlign='center';
+            table.style.width='100%';
+            table.style.height='70vh';
+            table.style.borderRadius='12px';
+
+            var width_cell=1/(column+1/2) * 100 + '%'
+            var height_cell=1/(row+1) * 100 +'%'
+
+            var row_t;
+            for(r=0;r<row+1;r++){
+                row_t = table.insertRow(r);
+                for(c=0;c<column+1;c++){
+                    
+                    var cell = row_t.insertCell(c);
+                    cell.setAttribute('align','center');
+
+                    var text = '';
+
+                    if(c==0){
+                        if (r!=0){
+                            text = '第'+r+'行';
+                            cell.style.borderBottom='1px dashed';
+
+                        }else{
+                            text = '';
+                            cell.style.border='0';
+                        }
+                    }else{
+                        
+                        if(r==0){
+                            text = '第'+c+'列';
+                            cell.style.borderRight='1px dashed';
+                        }else{
+                            cell.setAttribute('onClick','selectSit(this)');
+                            cell.style.width=width_cell;
+                            cell.style.height=height_cell;
+                            cell.style.border='1px solid';
+                            cell.style.borderRadius='12px';
+                            cell.style.fontSize='large';
+                            cell.style.backgroundColor='white';
+                            text = '';
+                        }
+                    }
+
+                    cell.innerText=text;
+                }
+
+            }
+
+            row_t=table.insertRow(0);
+
+            cell=row_t.insertCell(0);
+            cell.setAttribute('align','center');
+            cell.setAttribute('colspan',column+1);
+            cell.innerHTML='<div style="float:none;background:rgb(243, 205, 172);width:50%;">讲台</div>';
+
+            div_talbe_sit.appendChild(table);
+        }
+
+
+        var fileInput=document.getElementById('fileInput');
+
+        function selectFile(){
+            if (window.FileReader==false) {
+                alert('您的浏览器不支持读取文件！');
+                return false;
+            }
+            fileInput.click();
+        }
+
+
+        var str_nameList='';
+        fileInput.addEventListener('change',
+            function(){
+                if(this.files.length==0){
+                    console.log('没有选文件');
+                    return false;
+                }
+
+                var fileObj=this.files[0];
+
+                var reader=new FileReader();
+                reader.readAsText(fileObj,'UTF-8');     // readAsText读取为文本
+
+                reader.onload=function(){
+                    // onload事件是上传完成时触发，读取的内容在reader.result中
+                    str_nameList=reader.result.trim();
+                    alert('选择文件成功！');
+                    // console.log(str_nameList);
+                }
+                event.target.value=null;    // 事件值清空，选同一个文件时，重新触发事件
+            }
+        );
+
+
+        var map_nameAndRC=new Map();
+        var map_nameAndRC_copy=new Map();
+        
+        function listName(){
+
+            if (str_nameList==''){
+                alert('姓名为空！请重新选择文件！')
+                return;
+            }
+
+            // console.log(str_nameList);
+
+            var div_table_name=window.document.getElementById('div_table_name');
+            if(div_table_name.innerHTML!=''){
+                if(confirm('确定重新列出姓名吗？')==false){
+                    return;
+                }else{
+                    map_nameAndRC=new Map();
+                    map_nameAndRC_copy=new Map();
+                    div_table_name.innerHTML='';
+                }
+            }
+
+            arr_name=str_nameList.split('\n');
+
+            // 去除输入的空行
+            for(i=arr_name.length-1;i>=0;i--){
+                // console.log('值：'+arr_name[i]);
+                if(arr_name[i].trim()==''){
+                    arr_name.splice(i,1);
+                    // console.log('delete space');
+                }
+            }
+
+            var div_talbe_name=window.document.getElementById('div_table_name');
+            for(i=0;i<arr_name.length;i++){
+
+                var div = document.createElement('div');
+                div.setAttribute('id',i);          // 设置属性
+                div.style.border='1px solid';
+                div.style.marginTop=0;
+                div.style.padding='4px';
+
+                var str_name=arr_name[i].trim();
+
+                div.innerText=str_name;
+
+                map_nameAndRC.set(str_name,i);
+                map_nameAndRC_copy.set(str_name,i);
+
+                div_talbe_name.appendChild(div);
+            }
+            // console.log(map_nameAndRC.size);
+        }
+
+
+        function startOrStop(btn){
+            
+            if(btn.innerText=='▶'){
+                if(start()){
+                    btn.setAttribute('title','停止')
+                    btn.style.color='red';
+                    btn.innerText='■';
+                }
+            }else{
+                stop();
+                btn.setAttribute('title','开始')
+                btn.style.color='black';
+                btn.innerText='▶';
+            }
+        }
+
+
+        var int_interval;
+
+        var arr_key_map=[];
+
+        function start(){
+            if (typeof(selectSitCell) == 'undefined'){
+                alert('请先选中座位，再点开始按钮！',)
+                return false;
+            }else if(typeof(int_interval)!='undefined'){
+                // 已经定时
+                return false;
+            }else if(map_nameAndRC_copy.size ==0){
+                alert('没有列出姓名，不能运行！');
+                // 没有列出姓名
+                return false;
+            }
+
+            var str_name=selectSitCell.innerText;
+
+            if (str_name !=''){
+                // 加回去
+                if (! map_nameAndRC.has(str_name)){
+                    var i=map_nameAndRC_copy.get(str_name)
+                    map_nameAndRC.set(str_name,i);
+                    var div=document.getElementById(i);
+                    div.innerText=str_name;
+                }
+            }
+
+            arr_key_map=Array.from(map_nameAndRC.keys());
+
+            // console.log(arr_key_map.length);
+
+            int_interval=setInterval("clock()",150);
+
+            return true;
+        }
+
+
+        
+        function stop(){
+            if(typeof(int_interval)!='undefined'){
+                // 有定时
+                clearInterval(int_interval);
+                int_interval=undefined;
+            }
+        }
+
+
+        var lastNameDiv;
+        var lastKey_map;
+        function clock(){
+            var i;
+            var len_arr=arr_key_map.length;
+            var num;
+
+            if(len_arr==1){
+                // 最后一个时停止
+                clearInterval(int_interval);
+                int_interval=undefined;
+                num=0;
+            }else{
+                // 随机数
+                num=Math.floor(Math.random()*len_arr);
+            }
+
+            var key_map=arr_key_map[num];
+            i=map_nameAndRC.get(key_map);
+
+            var div=document.getElementById(i);
+
+            lastKey_map=key_map
+
+            if (typeof(lastNameDiv) != 'undefined'){
+                lastNameDiv.style.background='white';
+            }
+
+            div.style.background='yellow';
+
+            if (typeof(selectSitCell) != 'undefined'){
+                selectSitCell.innerText=div.innerText;
+            }
+
+            lastNameDiv=div;
+
+            if(len_arr==1){
+                alert('姓名全选完了！');
+            }
+        }
+
+
+        var selectSitCell;
+        function selectSit(cell_this){
+            if (typeof(int_interval) != 'undefined'){
+                // 定时开始了，就返回
+                return;
+            }
+
+            if (selectSitCell!=cell_this){
+                // 上一次选中的单元格不是正选中的单元格
+
+                if (typeof(selectSitCell)!='undefined'){
+                    selectSitCell.style.border='1px solid';
+
+                    if (selectSitCell.innerText !=''){
+                        // 上一次选中的单元格不为空
+                        selectSitCell.style.background='azure';
+                        map_nameAndRC.delete(lastKey_map);
+                        lastNameDiv.innerText='';
+                    }
+                }
+
+                cell_this.style.border='3px solid red';
+                selectSitCell=cell_this;
+            }
+        }
+
+    </script>
+
+</html>
